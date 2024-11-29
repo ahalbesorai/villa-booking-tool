@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmanDagat Villa Booking Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        p {
+            font-size: 16px;
+            color: #666;
+        }
+        input, button, select {
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 18px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input {
+            width: 100px;
+            text-align: center;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        select {
+            width: 100%;
+            font-size: 18px;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: left;
+        }
+        .total-cost {
+            font-size: 20px; /* 2 sizes bigger */
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AmanDagat Villa Booking Tool</h1>
+        <p>Enter the total number of guests (1–45) and choose your preference:</p>
+        <input type="number" id="guestCount" placeholder="Guests" min="1" max="45">
+        <select id="preference">
+            <option value="lowest">Lowest Price Combination</option>
+            <option value="comfortable">Most Comfortable Combination</option>
+        </select>
+        <button onclick="findBestCombination()">Find Best Combination</button>
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        // Pricing based on provided data
+        const pricing = {
+            "6-Guest Villa": {
+                1: 4985, 2: 4985, 3: 6500, 4: 8100, 5: 9600, 6: 10550, 7: 11450 // With extra bed
+            },
+            "8-Guest Villa": {
+                7: 11700, 8: 12900, 9: 13800 // With extra bed
+            }
+        };
+
+        // Maximum availability of each type
+        const villaAvailability = {
+            "6-Guest Villa": 6,
+            "8-Guest Villa": 2
+        };
+
+        function applyPriceCap(villaCount, totalPrice) {
+            // Apply price caps based on the number of villas
+            if (villaCount === 2 && totalPrice > 23750) {
+                return 23750;
+            } else if (villaCount === 3 && totalPrice > 35750) {
+                return 35750;
+            } else if (villaCount === 4 && totalPrice > 47750) {
+                return 47750;
+            } else if (villaCount === 5 && totalPrice > 59375) {
+                return 59375;
+            } else if (villaCount === 6 && totalPrice > 71000) {
+                return 71000;
+            } else if (villaCount === 7 && totalPrice > 82625) {
+                return 82625;
+            } else if (villaCount === 8 && totalPrice > 94250) {
+                return 94250;
+            }
+            return totalPrice;
+        }
+
+        function findBestCombination() {
+            const guestCount = parseInt(document.getElementById("guestCount").value);
+            const preference = document.getElementById("preference").value;
+            const output = document.getElementById("output");
+
+            if (!guestCount || guestCount < 1 || guestCount > 45) {
+                output.innerHTML = "<p>Please enter a valid number of guests between 1 and 45.</p>";
+                return;
+            }
+
+            let totalPrice = 0;
+            let villaDetails = [];
+            let remainingGuests = guestCount;
+            let available6Guest = villaAvailability["6-Guest Villa"];
+            let available8Guest = villaAvailability["8-Guest Villa"];
+            let villaCount = 0; // Track the total number of villas used
+
+            if (preference === "lowest") {
+                // Allocate 8-Guest Villas first for cost efficiency
+                while (remainingGuests >= 7 && available8Guest > 0) {
+                    if (remainingGuests >= 9) {
+                        totalPrice += pricing["8-Guest Villa"][9];
+                        villaDetails.push("1 x 8-Guest Villa with Extra Bed for 9 guests");
+                        remainingGuests -= 9;
+                    } else if (remainingGuests >= 8) {
+                        totalPrice += pricing["8-Guest Villa"][8];
+                        villaDetails.push("1 x 8-Guest Villa for 8 guests");
+                        remainingGuests -= 8;
+                    } else if (remainingGuests === 7) {
+                        totalPrice += pricing["8-Guest Villa"][7];
+                        villaDetails.push("1 x 8-Guest Villa for 7 guests");
+                        remainingGuests -= 7;
+                    }
+                    available8Guest--;
+                    villaCount++;
+                }
+
+                // Allocate 6-Guest Villas next
+                while (remainingGuests > 0 && available6Guest > 0) {
+                    if (remainingGuests <= 7) {
+                        totalPrice += pricing["6-Guest Villa"][remainingGuests];
+                        villaDetails.push(`1 x 6-Guest Villa for ${remainingGuests} guests`);
+                        remainingGuests = 0;
+                    } else {
+                        totalPrice += pricing["6-Guest Villa"][6];
+                        villaDetails.push("1 x 6-Guest Villa for 6 guests");
+                        remainingGuests -= 6;
+                    }
+                    available6Guest--;
+                    villaCount++;
+                }
+            } else {
+                // Comfortable: Avoid extra beds when possible
+                while (remainingGuests >= 8 && available8Guest > 0) {
+                    totalPrice += pricing["8-Guest Villa"][8];
+                    villaDetails.push("1 x 8-Guest Villa for 8 guests");
+                    remainingGuests -= 8;
+                    available8Guest--;
+                    villaCount++;
+                }
+
+                while (remainingGuests > 0 && available6Guest > 0) {
+                    if (remainingGuests <= 6) {
+                        totalPrice += pricing["6-Guest Villa"][remainingGuests];
+                        villaDetails.push(`1 x 6-Guest Villa for ${remainingGuests} guests`);
+                        remainingGuests = 0;
+                    } else {
+                        totalPrice += pricing["6-Guest Villa"][6];
+                        villaDetails.push("1 x 6-Guest Villa for 6 guests");
+                        remainingGuests -= 6;
+                    }
+                    available6Guest--;
+                    villaCount++;
+                }
+            }
+
+            // Handle case where remaining guests cannot be accommodated
+            if (remainingGuests > 0) {
+                output.innerHTML = "<p>Not enough villas available to accommodate all guests.</p>";
+                return;
+            }
+
+            // Apply price cap based on the number of villas used
+            totalPrice = applyPriceCap(villaCount, totalPrice);
+
+            // Display results
+            output.innerHTML = `
+                <h2>Best Option for ${guestCount} Guests</h2>
+                <p><strong>Villa Combination:</strong></p>
+                <ul>${villaDetails.map(villa => `<li>${villa}</li>`).join("")}</ul>
+                <p><strong>Total Price:</strong> <span class="total-cost">PHP ${totalPrice.toLocaleString()}</span></p>
+            `;
+        }
+    </script>
+</body>
+</html>
